@@ -7,9 +7,17 @@
 
 package frc.robot;
 
-import edu.wpi.first.wpilibj.TimedRobot;
+import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+import edu.wpi.first.wpilibj.*;
+import com.ctre.phoenix.*;
+import com.kauailabs.navx.frc.*;
 
 public class Robot extends TimedRobot {
+
+  TalonSRX leftOne = new TalonSRX(1);
+  TalonSRX leftTwo = new TalonSRX(2);
+  TalonSRX rightOne = new TalonSRX(3);
+  TalonSRX rightTwo = new TalonSRX(4);
 
   @Override
   public void robotInit() {
