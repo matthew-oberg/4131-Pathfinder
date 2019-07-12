@@ -7,10 +7,13 @@
 
 package frc.robot;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
-import edu.wpi.first.wpilibj.*;
-import com.ctre.phoenix.*;
+
 import com.kauailabs.navx.frc.*;
+
+import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.XboxController;
 
 public class Robot extends TimedRobot {
 
@@ -18,6 +21,10 @@ public class Robot extends TimedRobot {
   TalonSRX leftTwo = new TalonSRX(2);
   TalonSRX rightOne = new TalonSRX(3);
   TalonSRX rightTwo = new TalonSRX(4);
+
+  TalonSRX[] driveTalons = {leftOne, leftTwo, rightOne, rightTwo};
+
+  XboxController controller = new XboxController(1);
 
   @Override
   public void robotInit() {
@@ -41,6 +48,17 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopPeriodic() {
+    standardDrive();
+  }
 
+  public void standardDrive() {
+    double throttle = controller.getRawAxis(0); //placeholder axis
+    double turn = controller.getRawAxis(1); //placeholder axis
+
+    leftOne.set(ControlMode.PercentOutput, throttle + turn);
+    leftTwo.set(ControlMode.PercentOutput, throttle + turn);
+
+    rightOne.set(ControlMode.PercentOutput, throttle - turn);
+    rightTwo.set(ControlMode.PercentOutput, throttle - turn);
   }
 }
