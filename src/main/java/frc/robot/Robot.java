@@ -22,8 +22,6 @@ public class Robot extends TimedRobot {
   TalonSRX rightOne = new TalonSRX(3);
   TalonSRX rightTwo = new TalonSRX(4);
 
-  TalonSRX[] driveTalons = {leftOne, leftTwo, rightOne, rightTwo};
-
   XboxController controller = new XboxController(1);
 
   @Override
