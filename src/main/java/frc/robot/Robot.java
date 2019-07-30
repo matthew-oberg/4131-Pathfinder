@@ -12,6 +12,8 @@ import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 
 import com.kauailabs.navx.frc.*;
 
+import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 
@@ -22,7 +24,11 @@ public class Robot extends TimedRobot {
   TalonSRX rightOne = new TalonSRX(3);
   TalonSRX rightTwo = new TalonSRX(4);
 
-  XboxController controller = new XboxController(1);
+  XboxController controller = new XboxController(0);
+  GenericHID.Hand leftHand = GenericHID.Hand.kLeft;
+  GenericHID.Hand rightHand = GenericHID.Hand.kRight;
+
+  AHRS ahrs = new AHRS(SPI.Port.kMXP);
 
   @Override
   public void robotInit() {
@@ -41,22 +47,32 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopInit() {
+    leftOne.setSelectedSensorPosition(0);
+    rightOne.setSelectedSensorPosition(0);
 
+    ahrs.reset();
   }
 
   @Override
   public void teleopPeriodic() {
     standardDrive();
+    System.out.println(ahrs.getAngle() * 4.5);
   }
 
   public void standardDrive() {
-    double throttle = controller.getRawAxis(0); //placeholder axis
-    double turn = controller.getRawAxis(1); //placeholder axis
+    double throttle = 0;
+    double turn = 0;
 
-    leftOne.set(ControlMode.PercentOutput, throttle + turn);
-    leftTwo.set(ControlMode.PercentOutput, throttle + turn);
+    if (controller.getY(leftHand) > 0.05 || controller.getY(leftHand) < -0.05)
+      throttle = controller.getY(leftHand);
 
-    rightOne.set(ControlMode.PercentOutput, throttle - turn);
-    rightTwo.set(ControlMode.PercentOutput, throttle - turn);
+    if (controller.getX(rightHand) > 0.05 || controller.getX(rightHand) < -0.05)
+      turn = controller.getX(rightHand);
+
+    leftOne.set(ControlMode.PercentOutput, turn - throttle);
+    leftTwo.set(ControlMode.PercentOutput, turn - throttle);
+
+    rightOne.set(ControlMode.PercentOutput, turn + throttle);
+    rightTwo.set(ControlMode.PercentOutput, turn + throttle);
   }
 }
