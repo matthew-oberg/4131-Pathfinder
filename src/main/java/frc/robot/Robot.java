@@ -8,114 +8,100 @@
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 
 import com.kauailabs.navx.frc.*;
 
-import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-public class Robot extends TimedRobot implements PIDOutput {
+public class Robot extends TimedRobot {
 
-    private static double pTurn = 0.0075;
-    private static double iTurn = 0.0;
-    private static double dTurn = 0.0;
-    private static double fTurn = 0.0;
-
-    private static final double toleranceDegrees = 2.0;
-
-    private static int turnTarget = 0;
-
-    private static final double pDrive = 0.0;
-    private static final double iDrive = 0.0;
-    private static final double dDrive = 0.0;
-    private static final double fDrive = 0.0;
-
-    private static final double toleranceTicks = 25.0;
-
-    private static double turnRate;
-
-    private static int driveTarget = 0;
-
-    private static double driveRate;
-
-    TalonSRX leftOne = new TalonSRX(1);
-    TalonSRX leftTwo = new TalonSRX(2);
-    TalonSRX rightOne = new TalonSRX(3);
-    TalonSRX rightTwo = new TalonSRX(4);
+    static TalonSRX leftOne = new TalonSRX(1);
+    static TalonSRX leftTwo = new TalonSRX(2);
+    static TalonSRX rightOne = new TalonSRX(3);
+    static TalonSRX rightTwo = new TalonSRX(4);
 
     XboxController controller = new XboxController(0);
     GenericHID.Hand leftHand = GenericHID.Hand.kLeft;
     GenericHID.Hand rightHand = GenericHID.Hand.kRight;
 
-    AHRS ahrs = new AHRS(SPI.Port.kMXP);
+    static AHRS ahrs = new AHRS(SPI.Port.kMXP);
 
-    PIDController turn = new PIDController(pTurn, iTurn, dTurn, fTurn, ahrs, this);
-    //PIDController drive = new PIDController(pDrive, iDrive, dDrive, dDrive, leftOne.getSelectedSensorPosition(), this);
+    AutoRotate turn = new AutoRotate();
+    AutoDrive drive = new AutoDrive();
 
     @Override
     public void robotInit() {
-        turn.setInputRange(0.0, 360.0);
-        turn.setOutputRange(-1, 1);
-        turn.setAbsoluteTolerance(toleranceDegrees);
-        turn.setContinuous(true);
-        turn.enable();
-        turn.setSetpoint(0);
+        turn.getTurn().setInputRange(-180.0, 180.0);
+        turn.getTurn().setOutputRange(-1, 1);
+        turn.getTurn().setAbsoluteTolerance(turn.getTolerance());
+        turn.getTurn().setContinuous(true);
+        turn.getTurn().enable();
+        turn.getTurn().setSetpoint(0);
     
-    /*drive.setInputRange(-254000.0, 254000.0);
-    drive.setOutputRange(-1, 1);
-    drive.setAbsoluteTolerance(toleranceTicks);
-    drive.setContinuous(true);
-    drive.enable();
-    drive.setSetpoint(0);*/
-    }
-
-    @Override
-    public void autonomousInit() {
-
-    }
-
-    @Override
-    public void autonomousPeriodic() {
-
+        drive.getDrive().setInputRange(Double.MIN_VALUE, Double.MAX_VALUE);
+        drive.getDrive().setOutputRange(-1, 1);
+        drive.getDrive().setAbsoluteTolerance(drive.getTolerance());
+        drive.getDrive().setContinuous(true);
+        drive.getDrive().enable();
+        drive.getDrive().setSetpoint(0);
     }
 
     @Override
     public void teleopInit() {
-        leftOne.setSelectedSensorPosition(0);
-        rightOne.setSelectedSensorPosition(0);
-
-        ahrs.reset();
+        leftOne.setNeutralMode(NeutralMode.Brake);
+        leftTwo.setNeutralMode(NeutralMode.Brake);
+        rightOne.setNeutralMode(NeutralMode.Brake);
+        rightTwo.setNeutralMode(NeutralMode.Brake);
     }
 
     @Override
     public void teleopPeriodic() {
         if (controller.getAButtonReleased()) {
-            reset();
+            resetTurn();
+        }
+
+        if (controller.getXButtonReleased()) {
+            resetDrive();
         }
 
         if (controller.getPOV() == 0) {
-            setTarget(0);
+            setTargetTurn(0);
         } else if (controller.getPOV() == 90) {
-            setTarget(90);
+            setTargetTurn(90);
         } else if (controller.getPOV() == 180) {
-            setTarget(180);
+            setTargetTurn(180);
         } else if (controller.getPOV() == 270) {
-            setTarget(270);
+            setTargetTurn(-90);
         } else {}
 
-        if (turn.onTarget()) {
-            standardDrive();
+        if (controller.getBButton()) {
+            autoTurn();
+        } else if (controller.getYButton()) {
+            autoDrive();
         } else {
-            turn.setSetpoint(turnTarget);
-            rotate();
+            standardDrive();
         }
 
         dashboard();
+    }
+
+    public void dashboard() {
+        SmartDashboard.putNumber("Turn Setpoint", turn.getTurn().getSetpoint());
+        SmartDashboard.putNumber("Drive Setpoint", drive.getDrive().getSetpoint());
+        SmartDashboard.putBoolean("Turn on Target", turn.getTurn().onTarget());
+        SmartDashboard.putBoolean("Drive on Target", drive.getDrive().onTarget());
+        SmartDashboard.putNumber("Turn Rate", turn.getTurnRate());
+        SmartDashboard.putNumber("Drive Rate", drive.getDriveRate());
+        SmartDashboard.putData("Angle", ahrs);
+        SmartDashboard.putNumber("Ticks", rightOne.getSelectedSensorPosition());
+        SmartDashboard.putData("Turn PID", turn.getTurn());
+        SmartDashboard.putData("Drive PID", drive.getDrive());
     }
 
     public void standardDrive() {
@@ -135,47 +121,40 @@ public class Robot extends TimedRobot implements PIDOutput {
         rightTwo.set(ControlMode.PercentOutput, turn + throttle);
     }
 
-    public void reset() {
+    public void resetTurn() {
         ahrs.reset();
     }
 
-    @Override
-    public void pidWrite(double output) {
-        if (turn.onTarget()) {
-            turnRate = 0;
+    public void setTargetTurn(int target) {
+        if (target >= -180 && target <= 180) {
+            turn.getTurn().setSetpoint(target);
         } else {
-            turnRate = output;
-        }
-    }
-
-    public void setTarget(int target) {
-        if (target > 360 || target < 0) {
             return;
-        } else {
-            turnTarget = target;
         }
     }
 
-    public void rotate() {
-        leftOne.set(ControlMode.PercentOutput, turnRate);
-        leftTwo.set(ControlMode.PercentOutput, turnRate);
+    public void autoTurn() {
+        leftOne.set(ControlMode.PercentOutput, turn.getTurnRate());
+        leftTwo.set(ControlMode.PercentOutput, turn.getTurnRate());
 
-        rightOne.set(ControlMode.PercentOutput, turnRate);
-        rightTwo.set(ControlMode.PercentOutput, turnRate);
+        rightOne.set(ControlMode.PercentOutput, turn.getTurnRate());
+        rightTwo.set(ControlMode.PercentOutput, turn.getTurnRate());
     }
 
-    public void dashboard() {
-        SmartDashboard.putNumber("POV", controller.getPOV());
-        SmartDashboard.putNumber("Setpoint", turn.getSetpoint());
-        SmartDashboard.putNumber("Angle", ahrs.getAngle());
-        SmartDashboard.putNumber("Target", turnTarget);
-        SmartDashboard.putBoolean("On Target", turn.onTarget());
-        SmartDashboard.putNumber("p", turn.getP());
-        SmartDashboard.putNumber("i", turn.getI());
-        SmartDashboard.putNumber("d", turn.getD());
-        SmartDashboard.putNumber("turnrate", turnRate);
-        /*turn.setP(p);
-        turn.setI(i);
-        turn.setD(d);*/
+    public void resetDrive() {
+        leftOne.setSelectedSensorPosition(0);
+        rightOne.setSelectedSensorPosition(0);
+    }
+
+    public void setTargetDrive(int target) {
+        drive.getDrive().setSetpoint(target);
+    }
+
+    public void autoDrive() {
+        leftOne.set(ControlMode.PercentOutput, drive.getDriveRate());
+        leftTwo.set(ControlMode.PercentOutput, drive.getDriveRate());
+
+        rightOne.set(ControlMode.PercentOutput, -drive.getDriveRate());
+        rightTwo.set(ControlMode.PercentOutput, -drive.getDriveRate());
     }
 }
