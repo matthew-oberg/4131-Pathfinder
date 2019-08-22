@@ -102,6 +102,7 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber("Ticks", rightOne.getSelectedSensorPosition());
         SmartDashboard.putData("Turn PID", turn.getTurn());
         SmartDashboard.putData("Drive PID", drive.getDrive());
+        setTargetDrive((int)SmartDashboard.getNumber("Drive Target Set", drive.getDrive().getSetpoint()));
     }
 
     public void standardDrive() {
