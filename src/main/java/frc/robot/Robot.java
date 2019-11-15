@@ -13,6 +13,7 @@ import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 
 import com.kauailabs.navx.frc.*;
 
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -34,6 +35,8 @@ public class Robot extends TimedRobot {
 
     AutoRotate turn = new AutoRotate();
     AutoDrive drive = new AutoDrive();
+
+    static double tv, tx, ty, ta, ts, tl;
 
     @Override
     public void robotInit() {
@@ -88,7 +91,18 @@ public class Robot extends TimedRobot {
             standardDrive();
         }
 
+        limelightVals();
+
         dashboard();
+    }
+
+    public void limelightVals() {
+        tv = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tv").getDouble(0);
+        tx = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tx").getDouble(0);
+        ty = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ty").getDouble(0);
+        ta = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ta").getDouble(0);
+        ts = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ts").getDouble(0);
+        tl = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tl").getDouble(0);
     }
 
     public void dashboard() {
@@ -102,7 +116,13 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber("Ticks", rightOne.getSelectedSensorPosition());
         SmartDashboard.putData("Turn PID", turn.getTurn());
         SmartDashboard.putData("Drive PID", drive.getDrive());
-        setTargetDrive((int)SmartDashboard.getNumber("Drive Target Set", drive.getDrive().getSetpoint()));
+
+        SmartDashboard.putNumber("Valid Targets (tv)", tv);
+        SmartDashboard.putNumber("Horizontal Offset (tx)", tx);
+        SmartDashboard.putNumber("Vertical Offset (ty)", ty);
+        SmartDashboard.putNumber("Target Area % (ta)", ta);
+        SmartDashboard.putNumber("Target Skew (ts)", ts);
+        SmartDashboard.putNumber("Latency (tl)", tl);
     }
 
     public void standardDrive() {
