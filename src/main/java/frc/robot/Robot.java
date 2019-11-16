@@ -35,6 +35,8 @@ public class Robot extends TimedRobot {
 
     AutoRotate turn = new AutoRotate();
     AutoDrive drive = new AutoDrive();
+    AutoAlign align = new AutoAlign();
+    AutoRange range = new AutoRange();
 
     static double tv, tx, ty, ta, ts, tl;
 
@@ -53,6 +55,20 @@ public class Robot extends TimedRobot {
         drive.getDrive().setContinuous(true);
         drive.getDrive().enable();
         drive.getDrive().setSetpoint(0);
+
+        align.getAlign().setInputRange(-30.0, 30.0);
+        align.getAlign().setOutputRange(-1, 1);
+        align.getAlign().setAbsoluteTolerance(turn.getTolerance());
+        align.getAlign().setContinuous(true);
+        align.getAlign().enable();
+        align.getAlign().setSetpoint(0);
+
+        range.getRange().setInputRange(0, 100);
+        range.getRange().setOutputRange(-1, 1);
+        range.getRange().setAbsoluteTolerance(range.getTolerance());
+        range.getRange().setContinuous(true);
+        range.getRange().enable();
+        range.getRange().setSetpoint(0);
     }
 
     @Override
@@ -87,6 +103,14 @@ public class Robot extends TimedRobot {
             autoTurn();
         } else if (controller.getYButton()) {
             autoDrive();
+        } else if (controller.getBackButton() && tv > 0) {
+            autoAlign();
+        } else if (controller.getStartButton() && tv > 0) {
+            autoRange();
+        } else if (controller.getBumper(rightHand) && tv > 0) {
+            autoChase();
+        } else if (controller.getBumper(leftHand)) {
+            fieldCentricDrive();
         } else {
             standardDrive();
         }
@@ -108,14 +132,26 @@ public class Robot extends TimedRobot {
     public void dashboard() {
         SmartDashboard.putNumber("Turn Setpoint", turn.getTurn().getSetpoint());
         SmartDashboard.putNumber("Drive Setpoint", drive.getDrive().getSetpoint());
+
         SmartDashboard.putBoolean("Turn on Target", turn.getTurn().onTarget());
         SmartDashboard.putBoolean("Drive on Target", drive.getDrive().onTarget());
+
         SmartDashboard.putNumber("Turn Rate", turn.getTurnRate());
         SmartDashboard.putNumber("Drive Rate", drive.getDriveRate());
-        SmartDashboard.putData("Angle", ahrs);
-        SmartDashboard.putNumber("Ticks", rightOne.getSelectedSensorPosition());
+
+        SmartDashboard.putNumber("Angle", ahrs.getAngle());
+        SmartDashboard.putNumber("Ticks", leftOne.getSelectedSensorPosition());
+
+        SmartDashboard.putBoolean("Align on Target", align.getAlign().onTarget());
+        SmartDashboard.putNumber("Align Rate", align.getTurnRate());
+
+        SmartDashboard.putBoolean("Range on Target", range.getRange().onTarget());
+        SmartDashboard.putNumber("Range Rate", range.getDriveRate());
+
         SmartDashboard.putData("Turn PID", turn.getTurn());
         SmartDashboard.putData("Drive PID", drive.getDrive());
+        SmartDashboard.putData("Align PID", align.getAlign());
+        SmartDashboard.putData("Range PID", range.getRange());
 
         SmartDashboard.putNumber("Valid Targets (tv)", tv);
         SmartDashboard.putNumber("Horizontal Offset (tx)", tx);
@@ -125,21 +161,35 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber("Latency (tl)", tl);
     }
 
-    public void standardDrive() {
+    public void fieldCentricDrive() {
         double throttle = 0;
-        double turn = 0;
+        double rotate = turn.getTurnRate();
 
         if (controller.getY(leftHand) > 0.05 || controller.getY(leftHand) < -0.05)
             throttle = controller.getY(leftHand);
 
-        if (controller.getX(rightHand) > 0.05 || controller.getX(rightHand) < -0.05)
-            turn = controller.getX(rightHand);
+        leftOne.set(ControlMode.PercentOutput, rotate + throttle);
+        leftTwo.set(ControlMode.PercentOutput, rotate + throttle);
 
-        leftOne.set(ControlMode.PercentOutput, turn - throttle);
-        leftTwo.set(ControlMode.PercentOutput, turn - throttle);
+        rightOne.set(ControlMode.PercentOutput, rotate - throttle);
+        rightTwo.set(ControlMode.PercentOutput, rotate - throttle);
+    }
 
-        rightOne.set(ControlMode.PercentOutput, turn + throttle);
-        rightTwo.set(ControlMode.PercentOutput, turn + throttle);
+    public void standardDrive() {
+        double throttle = 0;
+        double rotate = 0;
+
+        if (controller.getY(leftHand) > 0.05 || controller.getY(leftHand) < -0.05)
+            throttle = controller.getY(leftHand);
+
+        if (controller.getX(rightHand) > 0.075 || controller.getX(rightHand) < -0.075)
+            rotate = controller.getX(rightHand);
+
+        leftOne.set(ControlMode.PercentOutput, rotate + throttle);
+        leftTwo.set(ControlMode.PercentOutput, rotate + throttle);
+
+        rightOne.set(ControlMode.PercentOutput, rotate - throttle);
+        rightTwo.set(ControlMode.PercentOutput, rotate - throttle);
     }
 
     public void resetTurn() {
@@ -177,5 +227,35 @@ public class Robot extends TimedRobot {
 
         rightOne.set(ControlMode.PercentOutput, -drive.getDriveRate());
         rightTwo.set(ControlMode.PercentOutput, -drive.getDriveRate());
+    }
+
+    public void autoAlign() {
+        leftOne.set(ControlMode.PercentOutput, -align.getTurnRate());
+        leftTwo.set(ControlMode.PercentOutput, -align.getTurnRate());
+
+        rightOne.set(ControlMode.PercentOutput, -align.getTurnRate());
+        rightTwo.set(ControlMode.PercentOutput, -align.getTurnRate());
+    }
+
+    public void autoRange() {
+        leftOne.set(ControlMode.PercentOutput, -range.getDriveRate());
+        leftTwo.set(ControlMode.PercentOutput, -range.getDriveRate());
+
+        rightOne.set(ControlMode.PercentOutput, range.getDriveRate());
+        rightTwo.set(ControlMode.PercentOutput, range.getDriveRate());
+    }
+
+    public void autoChase() {
+        double throttle = 0;
+        double rotate = 0;
+
+        throttle = -range.getDriveRate();
+        rotate = -align.getTurnRate();
+
+        leftOne.set(ControlMode.PercentOutput, rotate + throttle);
+        leftTwo.set(ControlMode.PercentOutput, rotate + throttle);
+
+        rightOne.set(ControlMode.PercentOutput, rotate - throttle);
+        rightTwo.set(ControlMode.PercentOutput, rotate - throttle);
     }
 }

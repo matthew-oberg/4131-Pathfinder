@@ -5,29 +5,29 @@ import edu.wpi.first.wpilibj.PIDOutput;
 import edu.wpi.first.wpilibj.PIDSource;
 import edu.wpi.first.wpilibj.PIDSourceType;
 
-public class AutoDrive implements PIDOutput, PIDSource {
+public class AutoRange implements PIDOutput, PIDSource {
 
-    private final double pDrive = 0.0024;
+    private final double pDrive = 0.05;
     private final double iDrive = 0.0;
     private final double dDrive = 0.0;
     private final double fDrive = 0.0;
 
-    private final double toleranceTicks = 25.0;
+    private final double tolerancePercent = 0.25;
 
     private double driveRate;
 
-    PIDController drive = new PIDController(pDrive, iDrive, dDrive, fDrive, this, this);
+    PIDController range = new PIDController(pDrive, iDrive, dDrive, fDrive, this, this);
 
-    public AutoDrive() {
+    public AutoRange() {
 
     }
 
-    public PIDController getDrive() {
-        return drive;
+    public PIDController getRange() {
+        return range;
     }
 
     public double getTolerance() {
-        return toleranceTicks;
+        return tolerancePercent;
     }
 
     public double getDriveRate() {
@@ -36,7 +36,7 @@ public class AutoDrive implements PIDOutput, PIDSource {
 
     @Override
     public void pidWrite(double output) {
-        if (drive.onTarget()) {
+        if (range.onTarget()) {
             driveRate = 0;
         } else {
             driveRate = output;
@@ -55,6 +55,6 @@ public class AutoDrive implements PIDOutput, PIDSource {
 
     @Override
     public double pidGet() {
-        return Robot.leftOne.getSelectedSensorPosition();
+        return Robot.ta;
     }
 }
