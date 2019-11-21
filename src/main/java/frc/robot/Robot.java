@@ -38,7 +38,8 @@ public class Robot extends TimedRobot {
     AutoAlign align = new AutoAlign();
     AutoRange range = new AutoRange();
 
-    static double tv, tx, ty, ta, ts, tl;
+    static double tv, tx, ty, ta, tvert, tl;
+    static double tx_prev = 0;
 
     @Override
     public void robotInit() {
@@ -81,6 +82,10 @@ public class Robot extends TimedRobot {
 
     @Override
     public void teleopPeriodic() {
+        if (tx != 0) {
+            tx_prev = tx;
+        }
+
         if (controller.getAButtonReleased()) {
             resetTurn();
         }
@@ -103,12 +108,21 @@ public class Robot extends TimedRobot {
             autoTurn();
         } else if (controller.getYButton()) {
             autoDrive();
-        } else if (controller.getBackButton() && tv > 0) {
-            autoAlign();
-        } else if (controller.getStartButton() && tv > 0) {
-            autoRange();
-        } else if (controller.getBumper(rightHand) && tv > 0) {
-            autoChase();
+        } else if (controller.getBackButton()) {
+            if (tv == 0)
+                autoSeek();
+            else
+                autoAlign();
+        } else if (controller.getStartButton()) {
+            if (tv == 0)
+                autoSeek();
+            else
+                autoRange();
+        } else if (controller.getBumper(rightHand)) {
+            if (tv == 0)
+                autoSeek();
+            else
+                autoChase();
         } else if (controller.getBumper(leftHand)) {
             fieldCentricDrive();
         } else {
@@ -125,7 +139,7 @@ public class Robot extends TimedRobot {
         tx = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tx").getDouble(0);
         ty = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ty").getDouble(0);
         ta = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ta").getDouble(0);
-        ts = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ts").getDouble(0);
+        tvert = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tvert").getDouble(0);
         tl = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tl").getDouble(0);
     }
 
@@ -157,7 +171,7 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber("Horizontal Offset (tx)", tx);
         SmartDashboard.putNumber("Vertical Offset (ty)", ty);
         SmartDashboard.putNumber("Target Area % (ta)", ta);
-        SmartDashboard.putNumber("Target Skew (ts)", ts);
+        SmartDashboard.putNumber("Box Height (tvert)", tvert);
         SmartDashboard.putNumber("Latency (tl)", tl);
     }
 
@@ -257,5 +271,21 @@ public class Robot extends TimedRobot {
 
         rightOne.set(ControlMode.PercentOutput, rotate - throttle);
         rightTwo.set(ControlMode.PercentOutput, rotate - throttle);
+    }
+
+    public void autoSeek() {
+        if (tx_prev > 0) {
+            leftOne.set(ControlMode.PercentOutput, 0.2);
+            leftTwo.set(ControlMode.PercentOutput, 0.2);
+
+            rightOne.set(ControlMode.PercentOutput, 0.2);
+            rightTwo.set(ControlMode.PercentOutput, 0.2);
+        } else if (tx_prev < 0) {
+            leftOne.set(ControlMode.PercentOutput, -0.2);
+            leftTwo.set(ControlMode.PercentOutput, -0.2);
+
+            rightOne.set(ControlMode.PercentOutput, -0.2);
+            rightTwo.set(ControlMode.PercentOutput, -0.2);
+        }
     }
 }
